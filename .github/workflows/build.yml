@@ -1,0 +1,47 @@
+name: Build BadAPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B build `
+            -G "Visual Studio 17 2022" `
+            -A x64
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          cmake --build build `
+            --config Release `
+            --parallel
+
+      - name: Show generated DLLs
+        shell: pwsh
+        run: |
+          Write-Host "=== Generated DLLs ==="
+          Get-ChildItem -Path build -Recurse -Filter *.dll |
+            ForEach-Object {
+              Write-Host "$($_.FullName) - $($_.Length) bytes"
+            }
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: BadAPI-Release
+          path: |
+            build/**/*.dll
+            build/**/*.pdb
+          if-no-files-found: error
+          retention-days: 30
