@@ -1,0 +1,41 @@
+name: Build BadAPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A x64
+
+      - name: Build Release
+        run: cmake --build build --config Release --parallel
+
+      - name: List build files
+        shell: pwsh
+        run: |
+          Write-Host "=== DLL ==="
+          Get-ChildItem -Path . -Recurse -Filter *.dll |
+            Select-Object FullName, Length
+
+          Write-Host "=== PDB ==="
+          Get-ChildItem -Path . -Recurse -Filter *.pdb |
+            Select-Object FullName, Length
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: BadAPI-build
+          path: |
+            build/**/*.dll
+            build/**/*.pdb
+          if-no-files-found: error
+          retention-days: 30
